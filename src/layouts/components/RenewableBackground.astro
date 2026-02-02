@@ -1,0 +1,274 @@
+---
+// Renewable Energy Animated Background Component
+---
+
+<div class="renewable-background">
+  <div class="energy-waves"></div>
+  <div class="geometric-grid"></div>
+  <canvas id="particles"></canvas>
+</div>
+
+<style>
+  .renewable-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    transition: background 0.3s ease;
+  }
+
+  /* Dark mode background */
+  :global(html.dark) .renewable-background {
+    background: linear-gradient(135deg, #0b1f0a 0%, #0d2b2a 50%, #0a1a1f 100%);
+  }
+
+  /* Light mode background */
+  .renewable-background {
+    background: linear-gradient(135deg, #d8ffe4 0%, #f4fffa 50%, #ebfffd 100%);
+  }
+
+  .energy-waves {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    opacity: 0.25;
+    transition: opacity 0.3s ease;
+    animation: wave-drift 20s ease-in-out infinite;
+  }
+
+  /* Light mode waves (default) */
+  .energy-waves {
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(16, 185, 55, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(59, 246, 146, 0.15) 0%, transparent 40%);
+  }
+
+  /* Dark mode waves */
+  :global(html.dark) .energy-waves {
+    opacity: 0.15;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(172, 255, 139, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(0, 202, 13, 0.25) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(59, 246, 59, 0.2) 0%, transparent 40%);
+  }
+
+  @keyframes wave-drift {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+      transform: translate(-5%, 5%) rotate(5deg);
+    }
+    66% {
+      transform: translate(5%, -5%) rotate(-5deg);
+    }
+  }
+
+  .geometric-grid {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    animation: grid-flow 30s linear infinite;
+    transition: background-image 0.3s ease;
+  }
+
+  /* Light mode grid (default) */
+  .geometric-grid {
+    background-image: 
+      linear-gradient(rgba(16, 185, 129, 0.13) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
+    background-size: 100px 100px;
+  }
+
+  /* Dark mode grid */
+  :global(html.dark) .geometric-grid {
+    background-image: 
+      linear-gradient(rgba(16, 185, 24, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 185, 24, 0.03) 1px, transparent 1px);
+    background-size: 100px 100px;
+  }
+
+  @keyframes grid-flow {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(100px, 100px);
+    }
+  }
+
+  #particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+  }
+</style>
+
+<script>
+  const canvas = document.getElementById('particles') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  interface Particle {
+    x: number;
+    y: number;
+    size: number;
+    speedX: number;
+    speedY: number;
+    color: string;
+    life: number;
+    maxLife: number;
+  }
+
+  const particles: Particle[] = [];
+  
+  const darkColors = [
+    'rgba(16, 185, 129, 0.4)',  // green-500
+    'rgba(34, 197, 94, 0.35)',   // green-500
+    'rgba(59, 130, 246, 0.3)',   // blue-500
+    'rgba(14, 165, 233, 0.3)'    // sky-500
+  ];
+
+  const lightColors = [
+    'rgba(16, 185, 129, 0.6)',   // green-500 - more opaque
+    'rgba(34, 197, 94, 0.55)',   // green-500
+    'rgba(255, 203, 47, 0.85)',   // blue-500
+    'rgba(25, 233, 14, 0.5)'    // sky-500
+  ];
+
+  function getColors() {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    return isDark ? darkColors : lightColors;
+  }
+
+  function createParticle(): Particle {
+    const colors = getColors();
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 0,
+      maxLife: Math.random() * 200 + 100
+    };
+  }
+
+  // Update particle colors when theme changes
+  function updateParticleColors() {
+    const colors = getColors();
+    particles.forEach(particle => {
+      particle.color = colors[Math.floor(Math.random() * colors.length)];
+    });
+  }
+
+  // Initialize particles
+  for (let i = 0; i < 110; i++) {
+    particles.push(createParticle());
+  }
+
+  function drawConnections() {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    const baseOpacity = isDark ? 0.2 : 0.8;
+    
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 150) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(16, 185, 129, ${baseOpacity * (1 - distance / 150)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw connections first
+    drawConnections();
+
+    // Update and draw particles
+    particles.forEach((particle, index) => {
+      particle.life++;
+      
+      // Fade in and out
+      let opacity = 1;
+      if (particle.life < 50) {
+        opacity = particle.life / 50;
+      } else if (particle.life > particle.maxLife - 50) {
+        opacity = (particle.maxLife - particle.life) / 50;
+      }
+
+      // Update position
+      particle.x += particle.speedX;
+      particle.y += particle.speedY;
+
+      // Wrap around screen
+      if (particle.x < 0) particle.x = canvas.width;
+      if (particle.x > canvas.width) particle.x = 0;
+      if (particle.y < 0) particle.y = canvas.height;
+      if (particle.y > canvas.height) particle.y = 0;
+
+      // Draw particle
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fillStyle = particle.color.replace(/[\d.]+\)/, `${opacity * 0.6})`);
+      ctx.fill();
+
+      // Add glow effect
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = particle.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Reset particle if life expired
+      if (particle.life >= particle.maxLife) {
+        particles[index] = createParticle();
+      }
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+
+  // Watch for theme changes (specifically the 'dark' class being added/removed)
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        updateParticleColors();
+      }
+    });
+  });
+
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+</script>
